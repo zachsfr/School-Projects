@@ -1,0 +1,231 @@
+---
+title: "Testing the Effect of Marital Status On Weight"
+author: "Zachary Safir, PUBHLTH 490ST, Spring 2018"
+date: "March 7, 2018"
+output: pdf_document
+
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r}
+my.data <- read.csv("NHIS_Sample-Adult_Subset.csv")
+```
+
+
+
+```{r,warning=FALSE,message=FALSE}
+#Loading in the packages I use
+library(dplyr)
+library(knitr)
+library(car)
+library(ggplot2)
+```  
+
+##My Story and Its Importance:
+For this project I wanted to explore the relationship between a person's weight, and their marital status. It is important for everyone to know, as all of us here will eventually either be in relationship of some sort, or have never had one at all. As such this applies to everyone.  
+
+##The Data I Used
+I used data from the National Health Interview Survey 2015, which is a massive set of data that holds the responses of many adults who took a health survey. I used the variables AWEIGHTP, R_MARITL, and SEX. Representing, in the order listed, weight (in pounds), marital status, and sex. I also created in this analysis, a new variable, Average Weight, which represents the average weights for each marital status.
+
+##Cleaning of the Data:
+In cleaning the data, I got rid of all unnecessary, and NA variables by simply making subsets where I only included people with a weight less than 300. I used the number 300, as that was the max weight recorded. For anyone who refused, information was unavailable, not ascertained, or simply did not know, they were recorded with a weight ranging from 996-999. As this was not applicable, and would only skew my results unnecessarily, I simply chose not to include them. From there I cleaned it further by filtering out anyone who did not give a proper response to the marital question. I chose to simply focus on the known statuses here to prevent making an over complicated analysis. In total I created created three data sets, one including people of both sexes, and two others split up by gender.   
+
+\pagebreak
+```{r}
+#Creating the data sets I use in this analysis
+weight.all <-my.data  %>%
+  select(AWEIGHTP,R_MARITL)%>%
+  filter(AWEIGHTP<300)
+f.weight <- my.data %>%
+  filter(AWEIGHTP<300,SEX==2)   %>%
+  select(AWEIGHTP,R_MARITL)
+m.weight <- my.data %>%
+  filter(AWEIGHTP<300,SEX==1)   %>%
+  select(AWEIGHTP,R_MARITL)
+#Adding in the appropriate names for each numbered marital status
+weight.all$`Marital Status`<- with(weight.all,ifelse(
+R_MARITL==1,'Married-in household',ifelse(
+R_MARITL==2,'Married-not in household',ifelse(
+R_MARITL ==4,'Widowed',ifelse(
+R_MARITL==5,'Divorced',ifelse(
+R_MARITL==6,'Seperated',ifelse(
+R_MARITL==7,'Never Married',ifelse(
+R_MARITL==8,'Living With Partner','whoops' 
+) )))))))
+f.weight$`Marital Status`<- with(f.weight,ifelse(
+f.weight$R_MARITL==1,'Married-in household',ifelse(
+f.weight$R_MARITL==2,'Married-not in household',ifelse(
+f.weight$R_MARITL ==4,'Widowed',ifelse(
+f.weight$R_MARITL==5,'Divorced',ifelse(
+f.weight$R_MARITL==6,'Seperated',ifelse(
+f.weight$R_MARITL==7,'Never Married',ifelse(
+f.weight$R_MARITL==8,'Living With Partner','whoops' 
+) )))))))
+m.weight$`Marital Status`<- with(m.weight,ifelse(
+m.weight$R_MARITL==1,'Married-in household',ifelse(
+m.weight$R_MARITL==2,'Married-not in household',ifelse(
+m.weight$R_MARITL ==4,'Widowed',ifelse(
+m.weight$R_MARITL==5,'Divorced',ifelse(
+m.weight$R_MARITL==6,'Seperated',ifelse(
+m.weight$R_MARITL==7,'Never Married',ifelse(
+m.weight$R_MARITL==8,'Living With Partner','whoops' 
+) )))))))
+#Filtering out the unknown marriage statuses
+weight.all<-weight.all  %>%
+filter(`Marital Status`!='whoops')
+f.weight<-f.weight  %>%
+filter(`Marital Status`!='whoops')
+m.weight<-m.weight  %>%
+filter(`Marital Status`!='whoops')
+ 
+```
+
+
+```{r}
+ #Creating summary statistics for each of my data sets
+ av.A<- weight.all %>% group_by(`Marital Status`)  %>% summarise(`Average Weight` = round(mean(AWEIGHTP), 2),Count = n(),SD=round(sd(AWEIGHTP),2))
+av.F <-f.weight %>% group_by(`Marital Status`) %>% summarise(`Average Weight` = round(mean(AWEIGHTP), 2),Count = n(), SD=round(sd(AWEIGHTP),2))
+av.M <-m.weight %>% group_by(`Marital Status`) %>% summarise(`Average Weight` = round(mean(AWEIGHTP), 2),Count = n(), SD=round(sd(AWEIGHTP),2))
+
+```
+ 
+###Everyones Weight vs Marital Status
+```{r}
+#First table for everyones weight(I was forced into doing it this way because of a bug)
+kable(av.A,format='latex')
+```
+###Womens Weight vs Marital Status
+```{r}
+#Second table for women data set 
+kable(av.F,format = 'latex' )
+```
+###Mens Weight vs Marital Status
+```{r}
+#Third table for men data set
+kable(av.M,format = 'latex' )
+```
+##Description of My Key Summary Statistics
+Starting from the first table, which has summary statistics for both sexes, we see that the marital status with the highest overall average is separated.  The status with the lowest average is widowed, which seems to be significantly less than the others, being 10 pounds lower than the second lowest status. Looking to the counts, it seems the marriage status with the most people is married in household, with the lowest being married but not in household. The standard deviations for each seems to fluctuate between 37 and 40. Now onto the differences between both sexes. As would make sense, the first immediately obvious fact is that the average weight for men is higher than women. Looking to where each group has the highest and lowest average weight, we again see differences. For women we see the highest average weight when the person is currently separated. For men however, the highest weight seems to be when they are married and living in the same household.  For the lowest weight we see for women, that they at their lowest when widowed, and for men it when they are married, but not living in the same household. We can also see some big differences in count. For women, there is a huge number of widowed people. Men on the other hand, don't even make up 20 percent of the total widowed people recorded in this survey. Everything else seems to split up almost evenly with some bigger differences here and there, but nothing nearly as big as the gap in widowed status. And finally, for the standard deviation, it's hard to see if there is any big differences for each, as they both seem to both have similar ranges and both don't vary too much.
+ 
+
+\pagebreak
+```{r}
+#Conducting the shapiro test on the men and women data sets, combined data set too big for this
+shapiro.test(m.weight$AWEIGHTP)
+shapiro.test(f.weight$AWEIGHTP)
+```
+
+```{r}
+ #Creating a matrix so all three histograms appear in the same frame
+layout(matrix(c(1,1,2,3), 2, 2, byrow = TRUE))
+#Creating all three histograms
+h1<-hist(weight.all$AWEIGHTP,main='Histogram of Average Weight For Everyone',cex.main=.9,xlab='Average Weight')
+h2<-hist(m.weight$AWEIGHTP,main='Histogram of Average Weight For Men',cex.main=.9,xlab='Average Weight')
+h3<-hist(f.weight$AWEIGHTP,main='Histogram of Average Weight For Women',cex.main=.9,xlab='Average Weight')
+```
+
+##Testing Normality 
+As you can see, in this section I first ran the Shapiro Wilks normality test on the men and women data sets I created. The p value for both tests is highly significant indicating a normal distribution, but as these are both big data sets, the test becomes less reliable, and was completely unable to deal with the data set including the weights of both sexes as it contained too many variables. As the histograms show, while the shapes for both seem to be somewhat normal, they appear to be skewed to the right. Of course, in a set as big as this we don't need to worry so much about normality as per the central limit theorem. As such, in the next part I still used the parametric ANOVA test. 
+ 
+\pagebreak
+
+###Anova Table for Everyones Weght vs Marital Status
+```{r}
+#Creating the anova table for everyones weight using the car and knitr package 
+linMod <-lm(AWEIGHTP~R_MARITL,data=weight.all)
+anova.A <- Anova(linMod,type=3)
+kable(anova.A,format='latex')
+```
+###Anova Table for Womens Weght vs Marital Status
+```{r}
+#Creating the anova table for womens weight using the car and knitr package 
+linMod <-lm(AWEIGHTP~R_MARITL,data=f.weight)
+anova.F <- Anova(linMod,type=3)
+kable(anova.F,format='latex')
+```
+###Anova Table for Mens Weght vs Marital Status
+```{r}
+#Creating the anova table for mens weight using the car and knitr package 
+linMod <-lm(AWEIGHTP~R_MARITL,data=m.weight)
+anova.M <- Anova(linMod,type=3)
+kable(anova.M,format='latex')
+```
+##My ANOVA Tables
+The ANOVA tests shown above reveals some interesting findings. All three p values for the ANOVA tables are below .05, indicating a significant difference in one or more of the levels for each data set. The p value for the mens data set though, seems to be much more significant then then the womens. The p value for everyone's weight is, of course a number in between both. 
+
+```{r}
+  #Creating the dataframes for each tukey test
+ my.anova.F <- aov(AWEIGHTP~f.weight$`Marital Status`,data= f.weight)
+  f.tuktest<- TukeyHSD(my.anova.F)
+  f.tuk <-  lapply(f.tuktest, data.frame)
+  my.anova.M <- aov(AWEIGHTP~m.weight$`Marital Status`,data= m.weight)
+  m.tuktest <- TukeyHSD(my.anova.M)
+  m.tuk <-lapply(m.tuktest, data.frame)
+  
+```
+\pagebreak 
+
+##Tukey Test For Mens Weight vs Marital Status
+```{r,fig.align='center',fig.height=2,fig.width=2}
+#Creating the first tukey table for mens weight vs marital status 
+kable(m.tuk,format = 'latex')
+```
+The tukey test above tests the differences between the levels in the data you feed it. For the men data set we see that there are multiple levels that have a significant difference between them. The biggest difference for men seems to exist between married but not in same household, and married in same household. And the smallest difference seems to be between being married in the same household,and being divorced.
+
+\pagebreak 
+
+##Tukey Test For Womens Weight vs Marital Status
+```{r,fig.align='center',fig.height=2,fig.width=2}
+#Creating second tukey table for womens weight vs marital status 
+kable(f.tuk,format='latex')
+```
+For the women data set we see similar results, there are many levels here that are significantly different. The biggest difference  for women however, exists between widowed and seperated. The smallest difference here seems to exists between never married, and married but not in same household. 
+\pagebreak 
+ 
+```{r,tidy=TRUE}
+#Adding groups to each of these data sets, which have the average for each status  
+av.A$Group <-'All'
+  av.F$Group <-'Women'
+  av.M$Group <-'Men'
+#Putting all three datasets together
+All.M <-Reduce(function(x, y) merge(x, y, all=TRUE), list(av.A,av.F,av.M))
+#Creating my first graphic, the line graph
+ggplot(aes(x=`Marital Status`,y=`Average Weight`,group=Group,color=Group),data=All.M)+
+geom_line()  +ggtitle('Average Weight Based on Marital Status')+
+    geom_point()+theme(axis.text.x = element_text(face="bold", color="black",
+                           size=9, angle=40))
+```
+
+##First Graphic
+To start with I created a simple line graph to clearly display the different means for each data set. It's clear from looking at this graphic that weight does vary based on what marital status the respondent currently is in.  We can also clearly see above the marital groups with the highest average weight for each sex, and how women with a widowed status are in the majority, as the data set with everyone weights also drops significantly to reflect the women's average weight there. This graphic does however fail to convey the distribution of everyone's weights.   
+
+\pagebreak 
+
+
+```{r, fig.width=7,fig.height=4,fig.align='center',tidy=TRUE}
+#Below I create two boxplots for the men and women datasets 
+ggplot(aes(x=`Marital Status`,y=AWEIGHTP,group=`Marital Status`,color=`Marital Status`),data=m.weight)+
+geom_boxplot()  +ggtitle('Average Weight Based on Marital Status For Men')+
+    theme(axis.text.x = element_text(face="bold", color="black",
+            size=9, angle=35))+guides(fill = guide_legend(), color=FALSE)+
+            labs(y='Average Weight')
+              
+  ggplot(aes(x=`Marital Status`,y=AWEIGHTP,group=`Marital Status`,color=`Marital Status`),data=f.weight)+
+geom_boxplot()  +ggtitle('Average Weight Based on Marital Status For Women')+
+    theme(axis.text.x = element_text(face="bold", color="black",
+           size=9, angle=35))+guides(fill = guide_legend(), color=FALSE)+
+           labs(y='Average Weight')
+```
+
+\pagebreak 
+
+##Second Graphics
+To properly finish this off, I created two bar plots, one for each gender, to clearly show the distribution of weight in each marital status. The graphs above indeed reveal some interesting information that would have been otherwise left unknown. Looking at the boxes for both graphics, I noticed that for men, the distribution in divorced, living with partner, married in household, and never married all seem to be slightly right skewed.  The groups in the women data set though, seem to be more evenly distributed, with only separated showing some more significant skewing. What does this mean? When the data is right skewed it usually indicates that the mean of the data is not in the middle. In this case, that means there are people with abnormally high weights skewing these distribtuons. This is more commonly seen in men, according to this data at least.
+
+##Conclusions
+I set out to find if marital status had any effect on a person's weight, and after doing everything here I feel like I have come to a solid conclusion. If, like I did, you were to ignore all factors outside of gender and marital status, I can soundly say there is a noticeable, significant difference in weights for people of different marital statuses. For both men and women, it seems apparent that your weight can be affected by your current marital status. Now, like I have mentioned many times before in this write up, I am fully aware that the reality is that there are way more factors at play than what I accounted for here. Until I take into complete account other such factors as age, and ethnicity I can't say for sure if marital status is what causes the different weights found in my analysis. However, I can definitively conclude that the differences exist. The p values from the ANOVA test and the turkey tests values for difference, are all statistical proof for this conclusion. In future investigations it will be interesting to investigate how exactly we can break this down based on the other factors I mentioned, and hopefully become able to find a proper cause for the different weights found in my data. For now, this is everything that can be said about the work I have done here. 

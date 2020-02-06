@@ -1,0 +1,335 @@
+---
+title: 'Challenge #3'
+author: "Zachary Safir"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+    theme: spacelab
+  word_document: default
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=12, fig.height=8, warning=FALSE)
+```
+
+Complete instructions for this assignment may be [found here](http://code.rodrigozamith.com/j397dj/challenges/challenge_3.html).
+
+### Part 1 (20 points)
+
+I'll begin by loading the datasets that have been provided for the analysis:
+
+```{r message=FALSE, warning=FALSE}
+# Load data
+library(tidyverse)
+library(DataExplorer)
+library(reshape2)
+library(readr)
+library(scales)
+options(scipen = 999) 
+shef_appropriations <- read_csv("http://code.rodrigozamith.com/j397dj/data/c3/Public_FTE_Enrollment_and_Educational_Appropriations_per_FTE_FY_1992_to_2017.csv")
+nyfed_student_debt_balance <- read_csv("http://code.rodrigozamith.com/j397dj/data/c3/Student_Loan_Debt_Balance_per_Capita_by_State.csv")
+nyfed_student_debt_balance_delinquent <- read_csv("http://code.rodrigozamith.com/j397dj/data/c3/Percent_of_Student_Loan_Debt_Balance_90plus_Days_Delinquent_by_State.csv")
+nyfed_total_debt <- read_csv("http://code.rodrigozamith.com/j397dj/data/c3/Total_Debt_Balance_and_Its_Composition.csv")
+nyfed_delinquent_debt_type <- read_csv("http://code.rodrigozamith.com/j397dj/data/c3/Percent_of_Balance_90plus_Days_Delinquent_by_Loan_Type.csv")
+nyfed_total_debt_by_age <- read_csv("http://code.rodrigozamith.com/j397dj/data/c3/Total_Debt_by_Product_Type_and_Age_2018_Q4.csv")
+doe_collection_agencies <- read_csv("http://code.rodrigozamith.com/j397dj/data/c3/Default_Recoveries_by_Private_Collection_Agency_FY18Q4.csv")
+college_scorecard_subset <- read_csv("https://ed-public-download.app.cloud.gov/downloads/Most-Recent-Cohorts-Scorecard-Elements.csv", na="NULL")
+```
+
+
+
+```{r message=FALSE, warning=FALSE}
+#Loading more data!
+MERGED2003_04_PP <- read_csv("CollegeScorecard_Raw_Data/CollegeScorecard_Raw_Data/MERGED2003_04_PP.csv")
+MERGED2003_04_PP$Year <- 2003
+
+MERGED2004_05_PP <- read_csv("CollegeScorecard_Raw_Data/CollegeScorecard_Raw_Data/MERGED2004_05_PP.csv")
+MERGED2004_05_PP$Year <- 2004
+
+MERGED2005_06_PP <- read_csv("CollegeScorecard_Raw_Data/CollegeScorecard_Raw_Data/MERGED2005_06_PP.csv")
+MERGED2005_06_PP$Year <- 2005
+
+MERGED2006_07_PP <- read_csv("CollegeScorecard_Raw_Data/CollegeScorecard_Raw_Data/MERGED2006_07_PP.csv")
+MERGED2006_07_PP$Year <- 2006
+
+MERGED2007_08_PP <- read_csv("CollegeScorecard_Raw_Data/CollegeScorecard_Raw_Data/MERGED2007_08_PP.csv")
+MERGED2007_08_PP$Year <- 2007
+
+MERGED2008_09_PP <- read_csv("CollegeScorecard_Raw_Data/CollegeScorecard_Raw_Data/MERGED2008_09_PP.csv")
+MERGED2008_09_PP$Year <- 2008
+
+MERGED2009_10_PP <- read_csv("CollegeScorecard_Raw_Data/CollegeScorecard_Raw_Data/MERGED2009_10_PP.csv")
+MERGED2009_10_PP$Year <- 2009
+
+MERGED2010_11_PP <- read_csv("CollegeScorecard_Raw_Data/CollegeScorecard_Raw_Data/MERGED2010_11_PP.csv")
+MERGED2010_11_PP$Year <- 2010
+
+MERGED2011_12_PP <- read_csv("CollegeScorecard_Raw_Data/CollegeScorecard_Raw_Data/MERGED2011_12_PP.csv")
+MERGED2011_12_PP$Year <- 2011
+
+MERGED2012_13_PP <- read_csv("CollegeScorecard_Raw_Data/CollegeScorecard_Raw_Data/MERGED2012_13_PP.csv")
+MERGED2012_13_PP$Year <- 2012
+
+MERGED2013_14_PP <- read_csv("CollegeScorecard_Raw_Data/CollegeScorecard_Raw_Data/MERGED2013_14_PP.csv")
+MERGED2013_14_PP$Year <- 2013
+
+MERGED2014_15_PP <- read_csv("CollegeScorecard_Raw_Data/CollegeScorecard_Raw_Data/MERGED2014_15_PP.csv")
+MERGED2014_15_PP$Year <- 2014
+
+MERGED2015_16_PP <- read_csv("CollegeScorecard_Raw_Data/CollegeScorecard_Raw_Data/MERGED2015_16_PP.csv")
+MERGED2015_16_PP$Year <- 2015
+
+MERGED2016_17_PP <- read_csv("CollegeScorecard_Raw_Data/CollegeScorecard_Raw_Data/MERGED2016_17_PP.csv")
+MERGED2016_17_PP$Year <- 2016
+
+college_scorecard <- do.call("rbind", list(MERGED2003_04_PP, MERGED2004_05_PP, MERGED2005_06_PP,MERGED2006_07_PP,MERGED2007_08_PP,MERGED2008_09_PP,MERGED2009_10_PP,MERGED2010_11_PP,MERGED2011_12_PP, MERGED2012_13_PP,MERGED2013_14_PP,MERGED2014_15_PP,MERGED2015_16_PP,MERGED2016_17_PP))
+
+
+rm(MERGED2003_04_PP, MERGED2004_05_PP, MERGED2005_06_PP,MERGED2006_07_PP,MERGED2007_08_PP,MERGED2008_09_PP,MERGED2009_10_PP,MERGED2010_11_PP,
+   MERGED2011_12_PP, MERGED2012_13_PP,MERGED2013_14_PP,MERGED2014_15_PP,MERGED2015_16_PP,MERGED2016_17_PP)
+
+
+```
+
+
+
+```{r}
+library(readxl)
+num_of_borrowers_age <- read_excel("Copy of StudentLoanData_by_age.xlsx", 
+    sheet = "Sheet4")
+
+balance_age <- read_excel("Copy of StudentLoanData_by_age.xlsx", 
+    sheet = "Sheet5")
+
+
+```
+
+
+
+Then, I wanted to look at how student debts have changed over time, as well as how that debt changes as people get older. So, I looked at student debts per capita since 2003 till 2016. Then I looked at a compression between 2005 and 2015 for total debt and number of debt borrowers in different age groups.  This helped me find out that debt has steadily increased over time, and that debt sticks with people for much of their life. Here's the code for doing all this:
+
+```{r}
+# Your code here
+ nyfed_student_debt_balance_long <- melt(nyfed_student_debt_balance)
+
+ nyfed_student_debt_balance_long <- nyfed_student_debt_balance_long %>% separate(variable, c("Quater","Year") )
+   nyfed_student_debt_balance_delinquent_long <- melt(nyfed_student_debt_balance_delinquent)
+
+ nyfed_student_debt_balance_delinquent_long <- nyfed_student_debt_balance_delinquent_long %>% separate(variable, c("Quater","Year") )
+ 
+  
+ colSums(is.na(nyfed_student_debt_balance_long))
+ 
+ nyfed_student_debt_balance_long %>%
+   filter(is.na(value))
+   
+ 
+nyfed_student_debt_balance_long <- nyfed_student_debt_balance_long  %>%
+  filter(state!="PR")
+ 
+ nyfed_student_debt_balance_long %>%
+   group_by(Year) %>%
+   summarise(mean = mean(value)) %>% 
+
+ggplot(aes(x=as.numeric(Year),y=mean))  + geom_line() +
+  geom_point() + labs(x="Year",y="Average Student Loans",title="Average Student Loans Over Time")
+ 
+ 
+  nyfed_student_debt_balance_long %>%
+   group_by(state) %>%
+   summarise(mean = mean(value)) %>% 
+   top_n(5)
+ 
+  nyfed_student_debt_balance_long %>%
+   group_by(state) %>%
+   summarise(mean = mean(value)) %>% 
+   top_n(-5)
+  
+  
+  
+
+ 
+ nyfed_student_debt_balance_long %>%
+   filter(state %in% c("DC","MA","MD","MN","NY")) %>%
+    
+ggplot(aes(x=as.numeric(Year),y=value,color=state) )  + geom_line() +
+  geom_point()+  labs(x="Year",y="Student Loans",title="Student Loans for Most Expensive States Vs. Time") + scale_y_continuous(labels=comma)
+
+  
+ nyfed_student_debt_balance_long %>%
+   filter(state %in% c("AR","HI","NM","NV","WY")) %>%
+    
+ggplot(aes(x=as.numeric(Year),y=value,color=state) )  + geom_line() +
+  geom_point() +labs(x="Year",y="Student Loans",title="Student Loans for Least Expensive States Vs. Time") + scale_y_continuous(labels=comma)
+ 
+ 
+ shef_appropriations %>%
+   group_by(`Fiscal Year`) %>%
+   count()
+ 
+ 
+ 
+nyfed_total_debt_by_age %>%
+  melt() %>%
+  
+filter(`Debt Product`=="Student Loans (Trillions of Dollars )")
+ 
+ num_of_borrowers_age %>%
+   melt(id="Year") %>%
+   ggplot(aes(x=variable,y=value, group=Year,color=as.character(Year))) + geom_point() + geom_line()+  theme(axis.text.x = element_text(angle = 50, hjust = 1)) + labs(x="Age",col= "Year" , y="Number of Borrowers", title ="Number of People Borrowing Student Loans Vs. Age") + scale_y_continuous(labels=comma)
+
+ 
+ 
+ balance_age %>%
+  melt(id="Year")  %>%
+       
+    ggplot(aes(x=variable,y=value, group=Year,color=as.character(Year))) + geom_point() + geom_line() +  theme(axis.text.x = element_text(angle = 50, hjust = 1)) + labs(x="Age",col= "Year" , y="Balance", title="Student Loan Balance Vs. Age") + scale_y_continuous(labels=comma)
+
+ 
+ 
+ 
+```
+
+I also noticed that student debts based on your family's wealth had an interesting trend, so I dug deeper into that by looking at the entire college scoreboard data and seeing how debts based on your family's wealth changed over time. I also looked into in state vs out of state tuition, and tuition costs for different institutions. That's why I said in the story that middle class families have the highest student loans on average, and that tuition costs are going up for all schools. Here's the code for that:
+```{r}
+# Your code here
+
+
+college_scorecard %>%
+  
+  select(LO_INC_DEBT_MDN)
+ 
+college_scorecard %>%
+select(LO_INC_DEBT_MDN,Year) %>%
+  filter(LO_INC_DEBT_MDN =="PrivacySuppressed") %>%
+     group_by(Year) %>%
+  count()
+
+
+
+college_scorecard %>%
+select(LO_INC_DEBT_MDN,Year) %>%
+  filter(LO_INC_DEBT_MDN !="PrivacySuppressed") %>%
+  group_by(Year) %>%
+
+  summarise(mean = mean(as.numeric(LO_INC_DEBT_MDN),na.rm = TRUE))
+
+
+
+college_scorecard %>%
+select(MD_INC_DEBT_MDN,Year) %>%
+  filter(MD_INC_DEBT_MDN !="PrivacySuppressed") %>%
+  group_by(Year) %>%
+
+  summarise(mean = mean(as.numeric(MD_INC_DEBT_MDN),na.rm = TRUE))
+
+college_scorecard %>%
+select(HI_INC_DEBT_MDN,Year) %>%
+  filter(HI_INC_DEBT_MDN !="PrivacySuppressed") %>%
+  group_by(Year) %>%
+
+  summarise(mean = mean(as.numeric(HI_INC_DEBT_MDN),na.rm = TRUE))
+
+
+
+college_scorecard %>%
+select(HI_INC_DEBT_MDN,Year) %>%
+  filter(HI_INC_DEBT_MDN !="PrivacySuppressed") %>%
+  group_by(Year) %>%
+  count()
+college_scorecard %>%
+select(LO_INC_DEBT_MDN,Year) %>%
+  filter(LO_INC_DEBT_MDN !="PrivacySuppressed") %>%
+  group_by(Year) %>%
+ count()
+
+
+
+
+college_scorecard %>%
+select(LO_INC_DEBT_MDN, MD_INC_DEBT_MDN, HI_INC_DEBT_MDN, Year) %>%
+  filter(HI_INC_DEBT_MDN !="PrivacySuppressed",MD_INC_DEBT_MDN !="PrivacySuppressed",LO_INC_DEBT_MDN !="PrivacySuppressed") %>%
+      group_by(Year) %>%
+  summarise(`Low Income` = mean(as.numeric(LO_INC_DEBT_MDN),na.rm = TRUE),`Medium Income` = mean(as.numeric(MD_INC_DEBT_MDN),na.rm = TRUE), `High Income` = mean(as.numeric(HI_INC_DEBT_MDN),na.rm = TRUE)) %>%
+
+  melt(id ="Year", measure= c("Low Income","Medium Income","High Income") ) %>%
+ggplot(aes(x=Year,y=value,color=variable)) + geom_point() + geom_line() + labs(col="Family Income",title = "Average Median Debt for Students Based on Family Income",y = "Average median debt") + scale_y_continuous(labels=comma)
+
+
+
+
+
+
+
+college_scorecard %>%
+  select(TUITIONFEE_IN,TUITIONFEE_OUT,Year) %>%
+       group_by(Year) %>%
+  filter(TUITIONFEE_IN!="NULL",   TUITIONFEE_OUT  !="NULL")  %>%
+  summarise(`In State` = mean(as.numeric(TUITIONFEE_IN)) , `Out of State` = mean(as.numeric(TUITIONFEE_OUT))  ) %>%
+
+  melt(id ="Year", measure= c("In State","Out of State")) %>%
+ggplot(aes(x=Year,y=value,color=variable)) + geom_point() + geom_line() + labs(y="Average Tuiton",col="In or Out",title="Average Tution for In and Out of State Students ") + scale_y_continuous(labels=comma)
+
+college_scorecard %>%
+ select(CONTROL,Year,COSTT4_A,Year)  %>%
+ filter(COSTT4_A!="NULL",complete.cases(CONTROL))  %>%
+ mutate( CONTROL= case_when(CONTROL==1~ "Public",
+                            CONTROL==2~"Private nonprofit",
+                            TRUE ~"Private for-profit"
+                              )) %>%
+ group_by(Year,CONTROL)  %>%
+ summarise(Average = mean(as.numeric(COSTT4_A)))   %>%
+   ggplot(aes(x=Year,y=Average,group=CONTROL,color=CONTROL))  + geom_point() + geom_line() + labs(y="Average Tuiton",col="Type",title="Average Total Cost of Attendance Vs. Type of Institution") + scale_y_continuous(labels=comma)
+
+
+
+```
+
+### Part 2 (30 points)
+
+
+In the United states, student loans have become almost an expected reality. The majority of students going through college right now will take  at least one loan out during there time at school. However, many concerns have been raised over the high prices, and subsequently the high debts students find themselves in after finishing college. 
+
+In order to get a better understanding about how these loans effect students, we found a current student going through the loan process to get his opinion on the matter.
+
+Da`Ryeus, like many others, is just a normal university student. According to him, like many others now, he experiences the harsh reality of student loans. 
+
+In order to cover the cost of these loans, he participates in a program called work study. It allows him to work for money that pays off his school loans. As he says though, "College is not just about schoolwork, it's  about building a community". 
+
+Having to balance homework and a job in order to pay off these loans' means has very little free time to build connections with other students. On top of this, the strain on time puts additional pressure on him, giving him a constant feeling of anxiety.
+
+The program is not entirely lenient either, according to Da`Ryeus he has to meet a certain quota to get full financial support. Currently he would need to take a second job, further limiting his time, in order to fulfill it. 
+
+Another concern raised during this interview involves how these loans effect graduates ever after college. Da`Ryeus mentioned that, "It is hard for them (graduates) to even try starting a family because they immediately need to focus on working to pay off this debt".
+
+A similar concern was voiced by Anamaria Purcell, Associate Professor of Economics, at the University of Massachusetts Amherst. According to Purcell, "The thing is, if someone has a lot of student debt, that means they're probably not taking as many risks starting their own business. That's a big problem because small businesses have been a big part of the economic engine in this country. If you see less of those, that's a lot of creativity being lost, and less competition in those communities. That leads to economic inefficiencies, and we all lose."
+
+Investigation into student debt has uncovered that these worries will only continue to get worse. Over the past decade, the debt students' shoulder has steadily increased as the average debt for students has continued to go up every year. This is all according to the New York Fed data on student debt.
+
+Since 2005, the number of people borrowing student loans has only grown by one half. Meanwhile, the total debts of those students have more than doubled.  These loans stay with some of these people up until their 60s. The majority of student loans aren't even paid back until you are at least 40.  These loans stick onto people and do not quickly go away.
+
+To get a better understand of these rising debt numbers, we looked to the College Scorecard data from the U.S. Department of Education.  According to this data, middle class families are hit the hardest. Students from middle class families have had the highest median student loans on average, every year since 2003. 
+
+According to the previously mentioned Anamaria Purcell, "My research has explored the rising costs of college education, especially for middle-class families. I've published 2 books on that topic and have presented at dozens of conferences. It's a really fascinating research area because it's something that affects all of us. It doesn't matter if we have student loans ourselves, this is an issue that's affecting the entire economy!".
+
+The housing market crash of 2008 seems to have affected everyone, as from that point on especially the student debt numbers have gone up significantly.
+
+Even attending an in state public school won't save you, as the average tuition cost for in and out of state schools has only risen every year as well. 
+
+If your goal is to get the cheapest education cost possible, avoid private schools. Data shows that the cost of those schools has, and continues to be, significantly higher. Private-nonprofit schools now have an average attendance cost that is more than double of a public schools and private for-profit schools costing roughly half as much more on average. 
+
+You might be wondering, what can I do to avoid student loans as much as possible? A good question to have for sure.
+
+According to Thomas Georgescuk, the Founder of College Power Up!, a Northampton, MA-based nonprofit that hosts free college advising sessions around the country, "I tell a lot of students that if they want to get a good college education for relatively cheap, their best bet is to pick a good community college and then transfer to a four-year public university after their second year.". Unfortunately, similarly to Da`Ryeus's situation, "Students do miss out on a lot with that, of course. It's less time to make friends and connections, and they sometimes end up missing out on really great college opportunities like working their way up to management at a student newspaper or getting to a high-level student government position."
+
+A very good method for saving money indeed, but one that will sacrifice your student life. Until the system changes, students will have to choose between making sacrifices while a student or live with debt for years after graduating.
+
+
+
+### Part 3 (10 points)
+
+Transcript here, if necessary.
+
+#### Reflection
+I feel like the interview I conducted went very well overall. I should have asked the person I was interviewing for more details about himself at the start, but other than that I felt like I did a good job with the whole thing. If I had to improve anything else, it would be making better questions to prompt someone with. I tried to be open ended and vague on many questions this time, and it worked well, but there were times where I got unexpected answers. Worked out well in the end but having more control over the responses would not be a bad thing either.
